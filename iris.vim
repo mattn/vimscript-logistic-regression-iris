@@ -61,7 +61,7 @@ function! s:shuffle(arr)
   let l:i = len(l:arr)
   while l:i
     let l:i -= 1
-    let l:j = s:rand() * l:i % len(l:arr)
+    let l:j = float2nr(rand() / 4294967295.0 * l:i) % len(l:arr)
     if l:i ==# l:j
       continue
     endif
