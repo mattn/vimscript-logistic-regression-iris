@@ -3,11 +3,11 @@ function! s:dot(x, y) abort
 endfunction
 
 function! s:scale(x, f) abort
-  return map(deepcopy(a:x), 'v:val * a:f')
+  return map(copy(a:x), 'v:val * a:f')
 endfunction
 
 function! s:add(x, y) abort
-  return join(map(a:x, 'v:val + a:y[v:key]'), '+')
+  return map(a:x, 'v:val + a:y[v:key]')
 endfunction
 
 function! s:softmax(w, x) abort
@@ -28,11 +28,10 @@ function! s:logistic_regression(X, y, rate, ntrains) abort
       let l:x = a:X[l:i]
       let l:pred = s:softmax(l:w, l:x)
       let l:perr = a:y[l:i] - l:pred
-      let l:scale = l:rate * l:perr * l:pred * (1.0 - l:pred)
+      " the loop added dx once per feature; fold that factor into scale
+      let l:scale = l:rate * l:perr * l:pred * (1.0 - l:pred) * len(l:x)
       let l:dx = s:scale(l:x, l:scale)
-      for j in range(len(x))
-        call s:add(l:w, l:dx)
-      endfor
+      call s:add(l:w, l:dx)
     endfor
   endfor
   return l:w
