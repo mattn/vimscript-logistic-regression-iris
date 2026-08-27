@@ -1,17 +1,6 @@
-function! s:dot(x, y) abort
-  return eval(join(map(deepcopy(a:x), 'v:val * a:y[v:key]'), '+'))
-endfunction
-
-function! s:scale(x, f) abort
-  return map(copy(a:x), 'v:val * a:f')
-endfunction
-
-function! s:add(x, y) abort
-  return map(a:x, 'v:val + a:y[v:key]')
-endfunction
-
 function! s:softmax(w, x) abort
-  let l:v = s:dot(a:w, a:x)
+  let l:v = a:w[0] * a:x[0] + a:w[1] * a:x[1]
+        \ + a:w[2] * a:x[2] + a:w[3] * a:x[3]
   return 1.0 / (1.0 + exp(-l:v))
 endfunction
 
@@ -20,21 +9,27 @@ function! s:predict(w, x) abort
 endfunction
 
 function! s:logistic_regression(X, y, rate, ntrains) abort
-  let l:l = len(a:X[0])
-  let l:w = map(repeat([[]], l:l), '(rand() / 4294967295.0 - 0.5) * l:l / 2')
+  let l:w0 = (rand() / 4294967295.0 - 0.5) * 2
+  let l:w1 = (rand() / 4294967295.0 - 0.5) * 2
+  let l:w2 = (rand() / 4294967295.0 - 0.5) * 2
+  let l:w3 = (rand() / 4294967295.0 - 0.5) * 2
   let l:rate = a:rate
+  let l:samples = map(copy(a:X), 'v:val + [a:y[v:key]]')
   for l:n in range(a:ntrains)
-    for l:i in range(len(a:X))
-      let l:x = a:X[l:i]
-      let l:pred = s:softmax(l:w, l:x)
-      let l:perr = a:y[l:i] - l:pred
-      " the loop added dx once per feature; fold that factor into scale
-      let l:scale = l:rate * l:perr * l:pred * (1.0 - l:pred) * len(l:x)
-      let l:dx = s:scale(l:x, l:scale)
-      call s:add(l:w, l:dx)
+    for l:x in l:samples
+      let [l:x0, l:x1, l:x2, l:x3, l:y] = l:x
+      let l:v = l:w0 * l:x0 + l:w1 * l:x1
+            \ + l:w2 * l:x2 + l:w3 * l:x3
+      let l:pred = 1.0 / (1.0 + exp(-l:v))
+      let l:scale = l:rate * (l:y - l:pred) * l:pred
+            \ * (1.0 - l:pred) * 4
+      let l:w0 += l:x0 * l:scale
+      let l:w1 += l:x1 * l:scale
+      let l:w2 += l:x2 * l:scale
+      let l:w3 += l:x3 * l:scale
     endfor
   endfor
-  return l:w
+  return [l:w0, l:w1, l:w2, l:w3]
 endfunction
 
 function! s:token(line) abort
